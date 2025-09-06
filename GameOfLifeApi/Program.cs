@@ -29,3 +29,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.MapControllers();
 app.Run();
+
+// Enable WebApplicationFactory in tests
+public partial class Program { }

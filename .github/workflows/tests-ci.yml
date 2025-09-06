@@ -1,0 +1,33 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+    
+      - name: Build API image
+        run: |
+          docker build -t gameoflifeapi:ci ./GameOfLifeApi
+
+      - name: Run tests in Docker (SDK 7)
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/src" \
+            -w /src \
+            mcr.microsoft.com/dotnet/sdk:7.0 \
+            bash -lc "dotnet restore && dotnet test GameOfLifeApi.Tests/GameOfLifeApi.Tests.csproj --configuration Release --logger 'trx;LogFileName=test_results.trx'"
+
+      - name: Publish test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/TestResults/*.trx'
