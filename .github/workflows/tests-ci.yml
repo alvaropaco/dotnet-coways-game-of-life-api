@@ -35,17 +35,20 @@ jobs:
 
       - name: Restore
         run: dotnet restore
+        working-directory: GameOfLifeApi.Tests
 
       - name: Build (Release)
         run: dotnet build --no-restore --configuration Release
+        working-directory: GameOfLifeApi.Tests
 
-      - name: Run unit tests (exclude Integration category)
+      - name: Run unit tests (exclude Integration)
         run: >-
-          dotnet test GameOfLifeApi.Tests/GameOfLifeApi.Tests.csproj
+          dotnet test
           --no-build --configuration Release -v minimal
           --logger "trx;LogFileName=unit.trx"
           --collect:"XPlat Code Coverage"
           --filter "Category!=Integration"
+        working-directory: GameOfLifeApi.Tests
 
       - name: Upload unit test results and coverage
         if: always()
@@ -86,17 +89,20 @@ jobs:
 
       - name: Restore
         run: dotnet restore
+        working-directory: GameOfLifeApi.Tests
 
       - name: Build (Release)
         run: dotnet build --no-restore --configuration Release
+        working-directory: GameOfLifeApi.Tests
 
       - name: Run integration tests (Category=Integration)
         run: >-
-          dotnet test GameOfLifeApi.Tests/GameOfLifeApi.Tests.csproj
+          dotnet test
           --no-build --configuration Release -v minimal
           --logger "trx;LogFileName=integration.trx"
           --collect:"XPlat Code Coverage"
           --filter "Category=Integration"
+        working-directory: GameOfLifeApi.Tests
 
       - name: Upload integration test results and coverage
         if: always()
