@@ -1,21 +1,38 @@
 using System;
+using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using FluentAssertions;
 using GameOfLifeApi.DTOs;
+using LiteDB;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace GameOfLifeApi.Tests;
 
+[Trait("Category", "Integration")]
 public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
 
     public ApiIntegrationTests(WebApplicationFactory<Program> factory)
     {
-        _factory = factory.WithWebHostBuilder(_ => { });
+        _factory = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(services =>
+            {
+                var dbDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(ILiteDatabase));
+                if (dbDescriptor != null)
+                {
+                    services.Remove(dbDescriptor);
+                }
+                services.AddSingleton<ILiteDatabase>(_ => new LiteDatabase(new MemoryStream()));
+            });
+        });
     }
 
     [Fact]

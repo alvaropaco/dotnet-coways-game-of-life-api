@@ -12,18 +12,28 @@ services:
       - ASPNETCORE_URLS=http://0.0.0.0:8080
     volumes:
       - golivedata:/app/App_Data
-  tests:
+  unit-tests:
     image: mcr.microsoft.com/dotnet/sdk:7.0
     working_dir: /src
     volumes:
       - ./:/src
     command: >
       bash -lc "
-      echo '--- ls ---' && ls -la &&
-      echo '--- csprojs ---' && find . -maxdepth 2 -name '*.csproj' &&
       dotnet restore ./GameOfLifeApi/GameOfLifeApi.csproj &&
       dotnet restore ./GameOfLifeApi.Tests/GameOfLifeApi.Tests.csproj &&
-      dotnet test ./GameOfLifeApi.Tests/GameOfLifeApi.Tests.csproj
+      dotnet test ./GameOfLifeApi.Tests/GameOfLifeApi.Tests.csproj --filter \"Category!=Integration\"
+      "
+
+  integration-tests:
+    image: mcr.microsoft.com/dotnet/sdk:7.0
+    working_dir: /src
+    volumes:
+      - ./:/src
+    command: >
+      bash -lc "
+      dotnet restore ./GameOfLifeApi/GameOfLifeApi.csproj &&
+      dotnet restore ./GameOfLifeApi.Tests/GameOfLifeApi.Tests.csproj &&
+      dotnet test ./GameOfLifeApi.Tests/GameOfLifeApi.Tests.csproj --filter \"Category=Integration\"
       "
 
 volumes:
