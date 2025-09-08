@@ -4,6 +4,7 @@ using GameOfLifeApi.Repositories;
 using GameOfLifeApi.Services;
 using GameOfLifeApi.Utils;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 
 namespace GameOfLifeApi.Controllers;
 
@@ -33,6 +34,24 @@ public class BoardsController : ControllerBase
         };
         _repo.Insert(board);
         return Ok(board.Id);
+    }
+
+    [HttpPut("{id}")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(BoardStateResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult<BoardStateResponse> UpdateGrid(Guid id, [FromBody] UploadBoardRequest request)
+    {
+        if (request is null) return BadRequest(new { message = "Request body must not be null." });
+        var (ok, error) = GridUtils.ValidateRectangular(request.Grid);
+        if (!ok) return BadRequest(new { message = error });
+        var board = _repo.Get(id);
+        if (board is null) return NotFound();
+        board.Grid = request.Grid!;
+        // não mexe em Generation aqui
+        _repo.Update(board);
+        return Ok(ToResponse(board, board.Grid));
     }
 
     [HttpGet("{id}")]

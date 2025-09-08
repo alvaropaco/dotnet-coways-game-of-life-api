@@ -1,98 +1,203 @@
-# GameOfLifeApi (ASP.NET Core 7 + LiteDB)
+# Game of Life API
 
-Production-ready REST API for Conway's Game of Life, built with .NET 7 and persisted with LiteDB.
+[![.NET](https://img.shields.io/badge/.NET-7.0-512BD4?logo=dotnet&logoColor=white)](#)
+[![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-Web%20API-512BD4?logo=dotnet&logoColor=white)](#)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](#)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](LICENSE)
+[![Coverage ≥ 80%](https://img.shields.io/badge/coverage-%E2%89%A5%2080%25-brightgreen.svg)](#)
+<!-- Optionally add your CI badge below by replacing OWNER/REPO -->
+<!-- [![CI - Unit and Integration Tests](https://github.com/OWNER/REPO/actions/workflows/tests-ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/tests-ci.yml) -->
 
-## What's the "Game of Life", by Conway's?
-Conway's Game of Life is a cellular automaton devised by the British mathematician John Horton Conway in 1970. It is a zero-player game, meaning that its evolution is determined by its initial state, requiring no further input. One interacts with the Game of Life by creating an initial configuration and observing how it evolves.
+## 1. Project Title
+Game of Life API — A production-ready .NET 7 Web API for Conway’s Game of Life.
 
-## Rules
-- Any live cell with fewer than two live neighbours dies, as if by underpopulation.
-- Any live cell with two or three live neighbours lives on to the next generation.
-- Any live cell with more than three live neighbours dies, as if by overpopulation.
-- Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+## 2. Description
+This repository contains a production-ready RESTful API that implements Conway’s Game of Life. Built with ASP.NET Core 7 and persisted with LiteDB, it follows a clean, testable architecture with layered design (Controllers → Services → Repositories → DTOs) and continuous integration. The API supports creating boards, computing next/step states, advancing/persisting generations, and detecting final/loop states.
 
-## Features
-- Upload a board, query current/next states, jump N steps, advance and persist, compute final state/loop.
-- ASP.NET Core 7, DI, LiteDB file persistence (App_Data/GameOfLife.db), Swagger (Development), xUnit + FluentAssertions.
+## 3. Key Features
+- Create a board and persist it in LiteDB (embedded, file-backed)
+- Query current and next states without mutation
+- Jump N steps ahead deterministically (no persistence) or advance and persist state
+- Compute final state/loop with period detection
+- CORS-enabled for local frontend development
+- Swagger UI in Development environment
+- Unit and integration tests with coverage; CI reports coverage (target ≥80%)
 
-## Requirements / Requisitos
+## 4. Technology Stack
+- Language/Runtime: .NET 7 (C#)
+- Web: ASP.NET Core Web API
+- Persistence: LiteDB (embedded NoSQL, file-backed)
+- Documentation: Swagger (Swashbuckle)
+- Testing: xUnit, FluentAssertions, Microsoft.AspNetCore.Mvc.Testing, Coverlet (collector)
+- CI: GitHub Actions (unit + integration, coverage summary)
+- Containerization: Docker and Docker Compose
+
+## 5. Installation Instructions
+Prerequisites:
 - .NET SDK 7.0
-- Optional/Opicional: Docker + Docker Compose
+- Optional: Docker + Docker Compose
 
-## Run locally / Executar localmente
-```
+Local run (Development):
+```bash
 cd GameOfLifeApi
  dotnet restore
  dotnet run
 ```
-Swagger is enabled in Development at https://localhost:5001/swagger (or http://localhost:5000/swagger).
+- Swagger (Development): https://localhost:5001/swagger (or http://localhost:5000/swagger)
 
-## Run with Docker
-```
+Run with Docker:
+```bash
+# Build and start the API on port 8080
 docker compose up --build gameoflifeapi
 ```
-The API listens on http://localhost:8080 (Swagger at /swagger).
+- API base: http://localhost:8080
+- Swagger: http://localhost:8080/swagger
+- Data persistence: LiteDB file mounted at App_Data/GameOfLife.db (via volume)
 
-Data persistence: LiteDB at App_Data/GameOfLife.db (mounted volume in Docker).
+## 6. Configuration
+Environment variables:
+- ASPNETCORE_ENVIRONMENT: Development (default in Docker) or Production
+- ASPNETCORE_URLS: Host binding (Docker compose sets http://0.0.0.0:8080)
+- DOTNET_RUNNING_IN_CONTAINER: Used by the app to avoid HTTPS redirection inside containers
 
-## REST API
-Base: /api/boards
+CORS:
+- The API defines a named policy AllowFrontend in Program.cs
+- Default allowed origins (local dev):
+  - http://localhost:5178, http://localhost:5179, http://localhost:3000
+- To change origins, update Program.cs and rebuild
 
-### Endpoints Table
+Data directory:
+- By default, data is stored at App_Data/GameOfLife.db under the app base path
+- Docker composes a volume to persist data across restarts
 
-| Endpoint | Required parameters | Request | Response | Possible errors | Description |
-|---|---|---|---|---|---|
-| POST /api/boards | Body: grid (rectangular bool[][]) | POST application/json. Body: { "grid": bool[][] } | 200 OK: GUID (string) | 400 BadRequest: { "message": "<validation error>" } | Creates a new board persisted in LiteDB; generation = 0 |
-| GET /api/boards/{id} | Path: id (GUID) | GET | 200 OK: BoardStateResponse { id, generation, width, height, aliveCount, grid } | 404 NotFound | Returns current state without mutation |
-| GET /api/boards/{id}/next | Path: id (GUID) | GET | 200 OK: BoardStateResponse | 404 NotFound | Computes next state (no persistence, does not change generation) |
-| GET /api/boards/{id}/steps/{n} | Path: id (GUID), n (int >= 0) | GET | 200 OK: BoardStateResponse (generation = current + n) | 400 BadRequest: { "message": "n must be >= 0" } 404 NotFound | Returns state after N steps (no persistence) |
-| POST /api/boards/{id}/advance?steps={s} | Path: id (GUID); Query: steps (int >= 0, default=1) | POST (no body) | 200 OK: BoardStateResponse (persisted) | 400 BadRequest: { "message": "steps must be >= 0" } 404 NotFound | Advances and persists the board by S steps |
-| GET /api/boards/{id}/final?maxAttempts={m} | Path: id (GUID); Query: maxAttempts (int, default=10000) | GET | 200 OK: FinalStateResponse { id, finalGrid, stepsTaken, isLoop, period, conclusion } | 404 NotFound; 422 UnprocessableEntity: { "message": "<reason>" } | Attempts to conclude (stable/loop) within maxAttempts |
+## 7. Usage Examples
+You can interact with the API via Swagger UI or cURL.
 
-1) POST /api/boards — Upload board
-Body (JSON):
-```
-{
-  "grid": [[true, false, true], [false, true, false]]
-}
-```
-Response: 200 OK with GUID (board Id).
+Create (upload) a board:
+```bash
+# Development (HTTPS)
+curl -s -X POST https://localhost:5001/api/boards \
+  -H "Content-Type: application/json" \
+  -d '{"grid": [[true,false,true],[false,true,false]]}'
 
-2) GET /api/boards/{id} — Current state
-3) GET /api/boards/{id}/next — Next state (does not mutate)
-4) GET /api/boards/{id}/steps/{n} — State after N steps (n >= 0, no mutation)
-5) POST /api/boards/{id}/advance?steps=1 — Advance and persist (steps >= 0)
-6) GET /api/boards/{id}/final?maxAttempts=10000 — Compute conclusion (stable/loop) or 422 if none within attempts
-
-Example cURL:
-```
-# Upload
-curl -s POST https://localhost:5001/api/boards \
- -H "Content-Type: application/json" \
- -d '{"grid": [[true,false],[false,true]]}'
-
-# Get current
-curl -s https://localhost:5001/api/boards/{id}
+# Docker (HTTP)
+curl -s -X POST http://localhost:8080/api/boards \
+  -H "Content-Type: application/json" \
+  -d '{"grid": [[true,false],[false,true]]}'
 ```
 
-## Project structure
-- Controllers: BoardsController
-- Services: GameOfLifeService (Next, Step, ComputeConclusion)
-- Repositories: LiteDbBoardRepository (LiteDB file in App_Data)
-- DTOs: UploadBoardRequest, BoardStateResponse, FinalStateResponse
-
-## Testing & Coverage
-Local:
+Get current state:
+```bash
+curl -s http://localhost:8080/api/boards/{id}
 ```
+
+Get next (no persistence):
+```bash
+curl -s http://localhost:8080/api/boards/{id}/next
+```
+
+Get N steps ahead (n ≥ 0, no persistence):
+```bash
+curl -s http://localhost:8080/api/boards/{id}/steps/{n}
+```
+
+Advance and persist (steps ≥ 0, default=1):
+```bash
+curl -i -X POST "http://localhost:8080/api/boards/{id}/advance?steps=2"
+```
+
+Update the board grid (replace cells):
+```bash
+curl -i -X PUT http://localhost:8080/api/boards/{id} \
+  -H "Content-Type: application/json" \
+  -d '{"grid": [[true,true],[true,true]]}'
+```
+
+Get final/loop conclusion (422 if not concluded within attempts):
+```bash
+curl -s "http://localhost:8080/api/boards/{id}/final?maxAttempts=10000"
+```
+
+## 8. API Endpoints Documentation
+Base path: `/api/boards`
+
+| Endpoint | Method | Params | Request | Response | Errors | Description |
+|---|---|---|---|---|---|---|
+| `/api/boards` | POST | — | JSON `{ "grid": bool[][] }` | `200 OK` GUID (string) | `400 BadRequest` `{ message }` | Create and persist a new board; generation = 0 |
+| `/api/boards/{id}` | GET | id: GUID | — | `200 OK` `BoardStateResponse` | `404 NotFound` | Current state (no mutation) |
+| `/api/boards/{id}/next` | GET | id: GUID | — | `200 OK` `BoardStateResponse` | `404 NotFound` | Next state (no persistence) |
+| `/api/boards/{id}/steps/{n}` | GET | id: GUID, n: int ≥ 0 | — | `200 OK` `BoardStateResponse` (generation = current + n) | `400 BadRequest` (invalid n), `404 NotFound` | State after N steps (no persistence) |
+| `/api/boards/{id}/advance?steps={s}` | POST | id: GUID, steps ≥ 0 | — | `200 OK` `BoardStateResponse` (persisted) | `400 BadRequest`, `404 NotFound` | Advance and persist the board by S steps |
+| `/api/boards/{id}` | PUT | id: GUID | JSON `{ "grid": bool[][] }` | `200 OK` `BoardStateResponse` | `400 BadRequest`, `404 NotFound` | Replace current grid (does not change generation) |
+| `/api/boards/{id}/final?maxAttempts={m}` | GET | id: GUID, m: int | — | `200 OK` `FinalStateResponse` | `404 NotFound`, `422 UnprocessableEntity` | Attempt to conclude (stable/loop) within m attempts |
+
+DTOs:
+- Upload: `{ grid: bool[][] }` (rectangular, non-empty)
+- BoardStateResponse: `{ id, generation, width, height, aliveCount, grid }`
+- FinalStateResponse: `{ id, finalGrid, stepsTaken, isLoop, period, conclusion }`
+
+## 9. Testing
+Local testing:
+```bash
 cd GameOfLifeApi.Tests
- dotnet test                      # all tests
+ dotnet test                             # all tests
  dotnet test --collect:"XPlat Code Coverage"  # with coverage
 ```
-CI (GitHub Actions): <mcfile name="tests-ci.yml" path="/Users/alvaropaco/github/GameOfLifeApi/.github/workflows/tests-ci.yml"></mcfile>
-- Runs unit and integration tests on push/PR to main.
-- Publishes test results to PR and posts a sticky coverage comment.
-- Enforces minimum 80% coverage (fails below 80%).
 
-## Notes
-- Swagger only in Development; Docker compose sets Development and exposes /swagger.
-- Data survives restarts via LiteDB file at App_Data/GameOfLife.db (volume in Docker).
+Continuous Integration:
+- Workflow: [.github/workflows/tests-ci.yml](.github/workflows/tests-ci.yml)
+- Runs unit and integration test jobs
+- Publishes test results to PRs and generates a coverage summary
+- Generates a coverage summary comment; no hard coverage threshold is enforced by CI
+
+## 10. Deployment
+Docker (recommended for local and simple deployments):
+```bash
+# Build the image
+docker compose build gameoflifeapi
+
+# Run the container
+docker compose up -d gameoflifeapi
+
+# Logs
+docker logs -f gameoflifeapi
+```
+- The API listens on `http://localhost:8080`
+- Data persisted under `App_Data` via named volume
+
+Kubernetes / Cloud:
+- Build and publish a container image to your registry
+- Create a Deployment and Service (LoadBalancer/Ingress) mapping container port 8080
+- Configure environment variables and persistent storage as needed
+
+## 11. Why This is Production-Ready
+- Architecture & Maintainability
+  - Layered design (Controllers → Services → Repositories → DTOs) with DI and clear separation of concerns
+  - Strong typing and validation for input (rectangular grid checks)
+- Scalability
+  - Stateless HTTP API suitable for horizontal scaling
+  - Repository abstraction enables migration from LiteDB to external databases without API changes
+- Security
+  - HTTPS redirection enabled by default outside containers
+  - CORS policy restricts allowed origins; preflight handling in middleware
+  - Clean 4xx/5xx error semantics (400 on validation, 404 when resources are missing, 422 for non-conclusive finals)
+- Performance
+  - Efficient grid processing (tight loops, minimal allocations)
+  - Lightweight stack (ASP.NET Core) with fast startup
+- Reliability & Quality
+  - Comprehensive unit and integration tests via WebApplicationFactory
+  - CI pipeline with coverage reporting and PR feedback
+  - Idempotent, side-effect-free reads; explicit mutation endpoints
+
+## 12. Contributing Guidelines
+We welcome contributions! To get started:
+1. Fork the repository and create a feature branch
+2. Follow the existing code style and structure
+3. Add/adjust tests for any changes (unit and/or integration)
+4. Ensure all tests pass locally and aim for ≥80% coverage
+5. Open a pull request describing your changes and rationale
+
+For substantial changes, please open an issue first to discuss your proposal.
+
+## 13. License Information
+This project is licensed under the GNU General Public License v3.0 — see the [LICENSE](LICENSE) file for details.
