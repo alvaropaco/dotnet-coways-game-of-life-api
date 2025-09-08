@@ -189,15 +189,5 @@ Kubernetes / Cloud:
   - CI pipeline with coverage reporting and PR feedback
   - Idempotent, side-effect-free reads; explicit mutation endpoints
 
-## 12. Contributing Guidelines
-We welcome contributions! To get started:
-1. Fork the repository and create a feature branch
-2. Follow the existing code style and structure
-3. Add/adjust tests for any changes (unit and/or integration)
-4. Ensure all tests pass locally and aim for ≥80% coverage
-5. Open a pull request describing your changes and rationale
-
-For substantial changes, please open an issue first to discuss your proposal.
-
-## 13. License Information
+## 12. License Information
 This project is licensed under the GNU General Public License v3.0 — see the [LICENSE](LICENSE) file for details.
